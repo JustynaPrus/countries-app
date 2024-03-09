@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+
+type Currency = {
+  name: string;
+  symbol: string;
+};
 
 export type Country = {
   name: {
@@ -16,8 +21,8 @@ export type Country = {
   subregion: string;
   capital: string[];
   tld: string[];
-  currencies: object;
-  languages: object;
+  currencies: Record<string, Currency>;
+  languages: Record<string, string>;
   borders: string[];
   flags: {
     png: string;
@@ -30,7 +35,7 @@ const getCountries = async (url: string): Promise<Country[]> => {
   const { data } = await axios.get<Country[]>(url);
   return data;
 };
-
+//tanstack/query
 export const useCountriesApi = (
   url: string
 ): {
@@ -42,20 +47,20 @@ export const useCountriesApi = (
   const [isLoading, setLoading] = useState(false);
   const [isError, setError] = useState(false);
 
+  const dataHandler = useCallback(async (url: string) => {
+    try {
+      const countries = await getCountries(url);
+      setCountries(countries);
+    } catch (error) {
+      setError(true);
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
-
-    (async () => {
-      try {
-        const countries = await getCountries(url);
-        setCountries(countries);
-      } catch (error) {
-        setError(true);
-      }
-    })();
-
+    dataHandler(url);
     setLoading(false);
-  }, [url]);
+  }, [dataHandler, url]);
 
   return { countries, isLoading, isError };
 };
